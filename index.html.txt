@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Queue Viewer</title>
+  <script src="config.js"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: system-ui, sans-serif;
+      background: #fff8fb;
+      color: #333;
+    }
+    .wrap {
+      max-width: 720px;
+      margin: auto;
+      padding: 20px;
+    }
+    .card {
+      background: white;
+      border-radius: 20px;
+      padding: 18px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+      margin-bottom: 16px;
+    }
+    h1 {
+      margin: 0 0 8px;
+      color: #e75480;
+      font-size: 28px;
+    }
+    .sub {
+      color: #777;
+      margin-bottom: 18px;
+    }
+    .queue-item {
+      border: 1px solid #ffd6e5;
+      border-radius: 16px;
+      padding: 14px;
+      margin-bottom: 12px;
+      background: #fff;
+    }
+    .name {
+      font-size: 20px;
+      font-weight: 700;
+      color: #d63384;
+    }
+    .meta {
+      font-size: 14px;
+      color: #666;
+      margin-top: 6px;
+      line-height: 1.6;
+    }
+    .urgent {
+      display: inline-block;
+      margin-top: 8px;
+      background: #ffebf1;
+      color: #c2185b;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+    .empty {
+      text-align: center;
+      color: #999;
+      padding: 20px;
+    }
+    .refresh {
+      width: 100%;
+      border: none;
+      padding: 14px;
+      border-radius: 14px;
+      background: #e75480;
+      color: white;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .brand {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .small {
+      font-size: 13px;
+      color: #888;
+      text-align: center;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card brand">
+      <h1 id="brand">กำลังโหลด...</h1>
+      <div class="sub">คิววันนี้ / รายการที่กำลังรอ</div>
+      <button class="refresh" onclick="loadQueue()">รีเฟรชคิว</button>
+      <div class="small">หน้าแสดงคิวสำหรับลูกค้า</div>
+    </div>
+
+    <div class="card">
+      <div id="queueList" class="empty">กำลังโหลดข้อมูล...</div>
+    </div>
+  </div>
+
+  <script>
+    async function loadQueue() {
+      const list = document.getElementById('queueList');
+      list.innerHTML = 'กำลังโหลดข้อมูล...';
+
+      try {
+        const res = await fetch(API_URL + '?action=getQueue');
+        const data = await res.json();
+
+        document.getElementById('brand').textContent = data.brand || 'QUEUE APP';
+
+        if (!data.queue || data.queue.length === 0) {
+          list.innerHTML = '<div class="empty">ยังไม่มีคิววันนี้</div>';
+          return;
+        }
+
+        list.innerHTML = data.queue.map((q, index) => `
+          <div class="queue-item">
+            <div class="name">คิวที่ ${index + 1}: ${q.customer || '-'}</div>
+            <div class="meta">
+              ประเภทงาน: ${q.type || '-'}<br>
+              ช่องทาง: ${q.channel || '-'}<br>
+              รายละเอียด: ${q.detail || '-'}<br>
+              กำหนดส่ง: ${q.deadline || '-'}
+            </div>
+            ${q.urgent ? `<div class="urgent">ด่วน: ${q.urgent}</div>` : ''}
+          </div>
+        `).join('');
+      } catch (err) {
+        list.innerHTML = '<div class="empty">โหลดข้อมูลไม่สำเร็จ กรุณาตรวจสอบ API หรือสิทธิ์การเข้าถึง</div>';
+      }
+    }
+
+    loadQueue();
+    setInterval(loadQueue, 15000);
+  </script>
+</body>
+</html>

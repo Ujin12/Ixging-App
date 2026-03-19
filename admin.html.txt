@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Queue Admin</title>
+  <script src="config.js"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: system-ui, sans-serif;
+      background: #f8fbff;
+      color: #333;
+    }
+    .wrap {
+      max-width: 820px;
+      margin: auto;
+      padding: 20px;
+    }
+    .card {
+      background: white;
+      border-radius: 20px;
+      padding: 18px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+      margin-bottom: 16px;
+    }
+    h1 {
+      margin: 0 0 8px;
+      color: #3b82f6;
+      font-size: 28px;
+    }
+    .sub {
+      color: #777;
+      margin-bottom: 18px;
+    }
+    input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 12px;
+      margin-bottom: 10px;
+      font-size: 15px;
+    }
+    button {
+      border: none;
+      padding: 12px 16px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: bold;
+    }
+    .btn-main {
+      width: 100%;
+      background: #3b82f6;
+      color: white;
+    }
+    .btn-refresh {
+      width: 100%;
+      margin-top: 10px;
+      background: #eef5ff;
+      color: #2563eb;
+    }
+    .queue-item {
+      border: 1px solid #dbeafe;
+      border-radius: 16px;
+      padding: 14px;
+      margin-bottom: 12px;
+      background: #fff;
+    }
+    .name {
+      font-size: 18px;
+      font-weight: 700;
+      color: #1d4ed8;
+    }
+    .meta {
+      font-size: 14px;
+      color: #666;
+      margin-top: 6px;
+      line-height: 1.6;
+    }
+    .row {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .btn-del {
+      flex: 1;
+      background: #fee2e2;
+      color: #b91c1c;
+    }
+    .empty {
+      text-align: center;
+      color: #999;
+      padding: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>หน้าแอดมิน</h1>
+      <div class="sub">เพิ่ม / ดู / ลบคิว</div>
+
+      <input id="customer" placeholder="ชื่อลูกค้า" />
+      <input id="type" placeholder="ประเภทงาน" />
+      <input id="channel" placeholder="ช่องทาง" />
+      <input id="detail" placeholder="รายละเอียด" />
+      <input id="deadline" placeholder="กำหนดส่ง เช่น 25/03/2026" />
+      <input id="urgent" placeholder="ด่วน / หมายเหตุ" />
+
+      <button class="btn-main" onclick="addQueue()">เพิ่มคิว</button>
+      <button class="btn-refresh" onclick="loadQueue()">รีเฟรชรายการ</button>
+    </div>
+
+    <div class="card">
+      <div id="queueList" class="empty">กำลังโหลดข้อมูล...</div>
+    </div>
+  </div>
+
+  <script>
+    async function loadQueue() {
+      const list = document.getElementById('queueList');
+      list.innerHTML = 'กำลังโหลดข้อมูล...';
+
+      try {
+        const res = await fetch(API_URL + '?action=getQueue');
+        const data = await res.json();
+
+        if (!data.queue || data.queue.length === 0) {
+          list.innerHTML = '<div class="empty">ยังไม่มีคิว</div>';
+          return;
+        }
+
+        list.innerHTML = data.queue.map((q, index) => `
+          <div class="queue-item">
+            <div class="name">คิวที่ ${index + 1}: ${q.customer || '-'}</div>
+            <div class="meta">
+              ประเภทงาน: ${q.type || '-'}<br>
+              ช่องทาง: ${q.channel || '-'}<br>
+              รายละเอียด: ${q.detail || '-'}<br>
+              กำหนดส่ง: ${q.deadline || '-'}<br>
+              ด่วน: ${q.urgent || '-'}
+            </div>
+            <div class="row">
+              <button class="btn-del" onclick="deleteQueue(${index + 2})">ลบคิวนี้</button>
+            </div>
+          </div>
+        `).join('');
+      } catch (err) {
+        list.innerHTML = '<div class="empty">โหลดข้อมูลไม่สำเร็จ กรุณาตรวจสอบ API หรือสิทธิ์การเข้าถึง</div>';
+      }
+    }
+
+    async function addQueue() {
+      const customer = document.getElementById('customer').value.trim();
+      const type = document.getElementById('type').value.trim();
+      const channel = document.getElementById('channel').value.trim();
+      const detail = document.getElementById('detail').value.trim();
+      const deadline = document.getElementById('deadline').value.trim();
+      const urgent = document.getElementById('urgent').value.trim();
+
+      if (!customer) {
+        alert('กรุณากรอกชื่อลูกค้า');
+        return;
+      }
+
+      const url = new URL(API_URL);
+      url.searchParams.set('action', 'addQueue');
+      url.searchParams.set('customer', customer);
+      url.searchParams.set('type', type);
+      url.searchParams.set('channel', channel);
+      url.searchParams.set('detail', detail);
+      url.searchParams.set('deadline', deadline);
+      url.searchParams.set('urgent', urgent);
+
+      try {
+        const res = await fetch(url.toString());
+        const data = await res.json();
+
+        if (data.success) {
+          alert('เพิ่มคิวเรียบร้อย');
+          document.getElementById('customer').value = '';
+          document.getElementById('type').value = '';
+          document.getElementById('channel').value = '';
+          document.getElementById('detail').value = '';
+          document.getElementById('deadline').value = '';
+          document.getElementById('urgent').value = '';
+          loadQueue();
+        } else {
+          alert('เพิ่มคิวไม่สำเร็จ');
+        }
+      } catch (err) {
+        alert('เชื่อมต่อ API ไม่สำเร็จ');
+      }
+    }
+
+    async function deleteQueue(row) {
+      if (!confirm('ต้องการลบคิวนี้ใช่ไหม?')) return;
+
+      const url = new URL(API_URL);
+      url.searchParams.set('action', 'deleteQueue');
+      url.searchParams.set('row', row);
+
+      try {
+        const res = await fetch(url.toString());
+        const data = await res.json();
+
+        if (data.success) {
+          alert('ลบคิวเรียบร้อย');
+          loadQueue();
+        } else {
+          alert('ลบคิวไม่สำเร็จ');
+        }
+      } catch (err) {
+        alert('เชื่อมต่อ API ไม่สำเร็จ');
+      }
+    }
+
+    loadQueue();
+  </script>
+</body>
+</html>
